@@ -9,7 +9,7 @@ class SystemController:
     def execute_command(self, cmd_type: str, args: str) -> str:
         try:
             if cmd_type == "POWERSHELL":
-                # اجرای دستورات واقعی PowerShell در ویندوز
+                # اجرای دستورات واقعی پاورشل در ویندوز
                 result = subprocess.run(["powershell", "-Command", args], capture_output=True, text=True, timeout=10)
                 return f"خروجی PowerShell:\n{result.stdout if result.stdout else result.stderr}"
             elif cmd_type == "TYPE":
