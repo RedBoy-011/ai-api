@@ -14,12 +14,14 @@ class APIManager:
         }
         self.sys_controller = SystemController()
         
-        # اسکریپت‌ها و مهارت‌های داخلی سیستم (Skills Bank)
+        # بانک جامع مهارت‌های تخصصی زیرساخت و شبکه
         self.skills_bank = {
-            "network_ping": "ابزار شبکه: پینگ گرفتن و بررسی پایداری IP مقصد در شبکه.",
-            "docker_status": "ابزار دواپس: بررسی وضعیت کانتینرهای فعال داکر و لاگ‌ها.",
-            "win_services": "ابزار ویندوز: بررسی و ریستارت سرویس‌های سیستمی ویندوز.",
-            "firewall_rule": "ابزار امنیت: مدیریت و پیشنهاد رول‌های فایروال و پورت‌ها."
+            "mikrotik_firewall": "دانش میکروتیک و RouterOS: نگارش اسکریپت‌های فایروال، رول‌های NAT، مانیتورینگ پورت‌ها و مدیریت ترافیک.",
+            "ubuntu_tunneling": "دانش اوبونتو و تانلینگ: راه‌اندازی انواع تانل‌ها (GRE، WireGuard، Xray، V2Ray، IPIP) و بهینه‌سازی مسیرها.",
+            "active_directory": "دانش مایکروسافت و اکتیو دایرکتوری: مدیریت Domain Controller، پالیسی‌ها (GPO)، مدیریت کاربران و سرویس‌های ویندوزی.",
+            "virtualization_esxi": "دانش مجازی‌سازی و ESXi: مدیریت ماشین‌های مجازی، پایش منابع، تنظیمات vSwitch و ذخیره‌سازها.",
+            "docker_automation": "دانش دواپس و اتوماسیون: نگارش فایل‌های Docker Compose، اتوماسیون سرویس‌ها و مدیریت کانتینرها.",
+            "windows_admin": "دانش پیشرفته ویندوز: مدیریت سرویس‌ها، رجیستری، اسکریپت‌نویسی PowerShell و بررسی لاگ‌های امنیتی."
         }
 
     def update_config(self, config_dict):
@@ -38,18 +40,16 @@ class APIManager:
             return {"http": proxy_url, "https": proxy_url}
         return None
 
-    # تست کلید جمینای و فچ کردن لیست مدل‌های فعال
     def test_and_fetch_gemini_models(self, api_key):
         url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
         try:
             response = requests.get(url, proxies=self.get_proxies(), timeout=15)
             if response.status_code == 200:
                 models = response.json().get("models", [])
-                # فیلتر مدل‌هایی که قابلیت generateContent دارند
                 valid_models = [m["name"].replace("models/", "") for m in models if "generateContent" in m.get("supportedGenerationMethods", [])]
                 return {"status": "success", "models": valid_models}
             else:
-                return {"status": "error", "message": f"خطا در اعتبارسنچی کلید ({response.status_code}): {response.text}"}
+                return {"status": "error", "message": f"خطا در اعتبارسنجی کلید ({response.status_code}): {response.text}"}
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
@@ -64,21 +64,18 @@ class APIManager:
         return clean_text.strip(), "\n".join(sys_outputs)
 
     def send_message(self, model_name, api_key, manual_skills, text, image_base64=None) -> tuple[str, str]:
-        # تزریق هوشمند مهارت‌ها به پرامپت سیستمی
         skills_context = "\nمهارت‌های فعال سیستم برای استفاده:\n"
         if manual_skills and len(manual_skills) > 0:
             for s in manual_skills:
                 if s in self.skills_bank:
                     skills_context += f"- {self.skills_bank[s]}\n"
         else:
-            # انتخاب خودکار بر اساس متن کاربر
             skills_context += "- دستیار هوشمند با دسترسی به تحلیل سیستم‌عامل و شبکه.\n"
 
-        base_cmd = " برای کارهای سیستمی فقط با این فرمت پاسخ دهید: [SYS_CMD:TYPE:متن] یا [SYS_CMD:PRESS:enter] یا [SYS_CMD:CLICK:]"
+        base_cmd = " برای کارهای سیستمی فقط با این فرمت پاسخ دهید: [SYS_CMD:POWERSHELL:دستور] یا [SYS_CMD:TYPE:متن] یا [SYS_CMD:PRESS:enter] یا [SYS_CMD:CLICK:]"
         sys_inst = "شما یک مهندس ارشد و ادمین زیرساخت فناوری هستید." + skills_context + base_cmd
         proxies = self.get_proxies()
 
-        # تشخیص اینکه درخواست با کدام مدل ارسال شود
         if "gemini" in model_name.lower():
             if not api_key: return "خطا: کلید API جمینای وارد نشده است.", ""
             
@@ -105,7 +102,6 @@ class APIManager:
             except Exception as e:
                 return f"خطای ارتباطی با جمینای: {str(e)}", ""
         else:
-            # پردازش با OpenRouter / DeepSeek
             keys = self.config.get("OpenRouter", [])
             if not keys: return "خطا: کلید OpenRouter تنظیم نشده است.", ""
             
