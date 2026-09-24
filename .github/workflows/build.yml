@@ -24,8 +24,21 @@ jobs:
       working-directory: ./src
       run: pyinstaller --onedir --windowed --noconsole --clean --add-data "templates;templates" app.py
 
+    - name: Create Stop Script Automatically
+      run: |
+        $stopScriptContent = @"
+        @echo off
+        chcp 65001 >nul
+        echo [INFO] در حال متوقف کردن سرویس‌های هوشمند زیرساخت...
+        taskkill /F /IM python.exe >nul 2>&1
+        taskkill /F /IM app.exe >nul 2>&1
+        echo [OK] سرور با موفقیت متوقف شد و پوشه آزاد گردید.
+        timeout /t 2 >nul
+        "@
+        Set-Content -Path "src/dist/app/stop.bat" -Value $stopScriptContent -Encoding Default
+
     - name: Create Dist Directory
-      run: mkdir dist
+      run: if (!(Test-Path dist)) { mkdir dist }
 
     - name: Archive Portable Folder into ZIP
       run: Compress-Archive -Path src/dist/app/* -DestinationPath dist/Infrastructure-Manager.zip
