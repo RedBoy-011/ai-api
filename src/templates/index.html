@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>GapGPT - Enterprise Infrastructure Manager</title>
+    <style>
+        @import url('https://cdn.fontcdn.ir/Font/Persian/Vazir/Vazir.css');
+        :root { --bg-main: #111113; --bg-panel: #18181B; --border: #27272A; --text-main: #EDEDEF; --text-muted: #A1A1AA; --accent: #3B82F6; }
+        body { margin: 0; padding: 0; background-color: var(--bg-main); color: var(--text-main); font-family: 'Vazir', sans-serif; display: flex; height: 100vh; overflow: hidden; }
+        
+        #sidebar { width: 340px; background-color: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; gap: 10px; }
+        .btn { background-color: var(--border); color: var(--text-main); border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: bold; transition: 0.2s; text-align: right; width: 100%; }
+        .btn:hover { background-color: #3F3F46; }
+        .btn-primary { background-color: var(--accent); color: white; }
+        .btn-primary:hover { background-color: #2563EB; }
+        .btn-danger { background-color: #7F1D1D; color: #FCA5A5; border: 1px solid #991B1B; margin-top: auto; }
+        .btn-danger:hover { background-color: #991B1B; color: #FFFFFF; }
+        
+        select, input, textarea { width: 100%; padding: 10px; background-color: var(--bg-main); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; font-family: inherit; box-sizing: border-box; }
+        
+        .chat-room-item { padding: 10px; border-radius: 6px; cursor: pointer; background: var(--bg-main); margin-bottom: 5px; border: 1px solid var(--border); font-size: 13px; }
+        .chat-room-item.active { border-color: var(--accent); background: #1E1E24; }
+
+        #main-chat { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; }
+        #chat-history { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding-bottom: 20px; }
+        
+        .msg { padding: 15px; border-radius: 12px; max-width: 80%; line-height: 1.6; }
+        .msg.user { background-color: var(--border); align-self: flex-start; }
+        .msg.ai { background-color: var(--bg-panel); border: 1px solid var(--border); align-self: flex-end; }
+        .msg.sys { background-color: #064E3B; border: 1px solid #065F46; color: #4ADE80; width: 100%; align-self: center; text-align: center; }
+        
+        /* پنل مهارت‌های دستی در کنار باکس پیام */
+        .skills-toolbar { background: var(--bg-panel); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; display: flex; gap: 15px; align-items: center; font-size: 12px; }
+        .skills-toolbar label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-muted); }
+        .skills-toolbar label:hover { color: var(--text-main); }
+
+        #input-area { display: flex; gap: 10px; align-items: flex-end; background-color: var(--bg-panel); padding: 10px; border-radius: 12px; border: 1px solid var(--border); }
+        #chat-input { flex-grow: 1; background: transparent; border: none; resize: none; min-height: 24px; max-height: 150px; outline: none; line-height: 1.5; }
+        
+        #attach-btn { background: transparent; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 5px 10px; }
+        #send-btn { background-color: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        
+        /* مودال تنظیمات و تست API */
+        #settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--bg-panel); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 500px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; overflow-y: auto; }
+        .loading { color: var(--text-muted); font-style: italic; align-self: center; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- سایدبار مدیریت مکالمات -->
+    <div id="sidebar">
+        <h2>مدیر زیرساخت هوشمند</h2>
+        
+        <label>انتخاب مدل فعال چت:</label>
+        <select id="model-select">
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (پیش‌فرض)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+            <option value="deepseek/deepseek-chat">DeepSeek (OpenRouter)</option>
+        </select>
+        
+        <button class="btn btn-primary" onclick="createNewChatSession()">＋ مکالمه جدید</button>
+        
+        <hr style="border-color: var(--border); width:100%; margin: 5px 0;">
+        <label>سابقه چت‌روم‌ها:</label>
+        <div id="chat-rooms-list" style="overflow-y: auto; max-height: 280px; flex-grow: 1;"></div>
+        
+        <button class="btn" onclick="openSettingsModal()">⚙️ تنظیمات API و پراکسی ساکس۵</button>
+        <a href="/logout" style="text-decoration:none;"><button class="btn" style="background:#3F3F46; color:#FCA5A5;">🚪 خروج از حساب ادمین</button></a>
+        <button class="btn btn-danger" onclick="shutdownApp()">❌ خاموش کردن کامل سرور</button>
+    </div>
+
+    <!-- بخش اصلی چت -->
+    <div id="main-chat">
+        <div id="chat-history">
+            <div style="text-align:center; color:#71717A; margin-top:50px;">جهت شروع، روی دکمه «مکالمه جدید» کلیک کنید.</div>
+        </div>
+        
+        <div class="loading" id="loading-indicator">در حال پردازش درخواست و فراخوانی مهارت‌ها...</div>
+        
+        <!-- باکس انتخاب دستی اسکیل‌ها/مهارت‌ها در حین چت -->
+        <div id="skills-box" class="skills-toolbar" style="display:none;">
+            <span style="font-weight: bold; color: var(--accent);">اسکیل‌های فعال این پیام:</span>
+            <label><input type="checkbox" name="skill" value="network_ping"> پینگ شبکه</label>
+            <label><input type="checkbox" name="skill" value="docker_status"> وضعیت داکر</label>
+            <label><input type="checkbox" name="skill" value="win_services"> سرویس‌های ویندوز</label>
+            <label><input type="checkbox" name="skill" value="firewall_rule"> فایروال</label>
+        </div>
+
+        <div id="input-area" style="display:none;">
+            <input type="file" id="file-input" style="display:none" accept="image/*">
+            <button id="attach-btn" onclick="document.getElementById('file-input').click()">📎</button>
+            <textarea id="chat-input" placeholder="دستور خود را بنویسید (Enter برای ارسال، Shift+Enter برای خط جدید)..."></textarea>
+            <button id="send-btn" onclick="sendMessage()">ارسال ↑</button>
+        </div>
+    </div>
+
+    <!-- مودال تنظیمات پیشرفته API، تست زنده و پراکسی ساکس۵ -->
+    <div id="settings-modal">
+        <div class="modal-content">
+            <h3>تنظیمات کلیدهای API و پراکسی شبکه</h3>
+            
+            <label>کلید API جمینای (Gemini):</label>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="gemini-key" placeholder="AIzaSy...">
+                <button class="btn btn-primary" onclick="testAndFetchGemini()" style="width: 120px;">تست و فچ مدل‌ها</button>
+            </div>
+            <small id="gemini-status" style="color: var(--text-muted);"></small>
+
+            <label style="margin-top: 10px;">کلید API اوپن‌روتر (OpenRouter / DeepSeek):</label>
+            <input type="text" id="openrouter-key" placeholder="sk-or-v1-...">
+            
+            <hr style="border-color: var(--border); width:100%; margin: 10px 0;">
+            
+            <label><input type="checkbox" id="proxy-enable"> فعال‌سازی سوییچ پراکسی SOCKS5</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="proxy-host" placeholder="IP (127.0.0.1)">
+                <input type="text" id="proxy-port" placeholder="Port (1080)">
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-top:15px;">
+                <button class="btn btn-primary" onclick="saveSettings()">ذخیره تنظیمات کلی</button>
+                <button class="btn" onclick="document.getElementById('settings-modal').style.display='none'">بستن</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chatSessions = {};
+        let currentChatId = null;
+        let attachedImage = null;
+        let globalApiKey = '';
+
+        function createNewChatSession() {
+            let chatId = 'chat_' + Date.now();
+            let chatName = 'مکالمه ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            chatSessions[chatId] = {
+                id: chatId,
+                name: chatName,
+                messages: []
+            };
+
+            switchChat(chatId);
+            renderChatRoomsList();
+        }
+
+        function switchChat(chatId) {
+            currentChatId = chatId;
+            renderChatRoomsList();
+            renderCurrentChatMessages();
+            document.getElementById('input-area').style.display = 'flex';
+            document.getElementById('skills-box').style.display = 'flex';
+        }
+
+        function renderChatRoomsList() {
+            let listDiv = document.getElementById('chat-rooms-list');
+            listDiv.innerHTML = '';
+            for(let id in chatSessions) {
+                let s = chatSessions[id];
+                let div = document.createElement('div');
+                div.className = `chat-room-item ${id === currentChatId ? 'active' : ''}`;
+                div.innerText = s.name;
+                div.onclick = () => switchChat(id);
+                listDiv.appendChild(div);
+            }
+        }
+
+        function renderCurrentChatMessages() {
+            let history = document.getElementById('chat-history');
+            history.innerHTML = '';
+            if(!currentChatId || !chatSessions[currentChatId]) return;
+            
+            let session = chatSessions[currentChatId];
+            if(session.messages.length === 0) {
+                history.innerHTML = `<div style='text-align:center; color:#71717A; margin-top:50px;'>چت‌روم آماده است. دستور یا پرسش خود را مطرح کنید.</div>`;
+                return;
+            }
+
+            session.messages.forEach(m => {
+                let div = document.createElement('div');
+                div.className = `msg ${m.role}`;
+                div.innerHTML = `<b>${m.role === 'user' ? 'شما' : m.role === 'sys' ? 'خروجی سیستم' : 'هوش مصنوعی'}:</b><br>${m.text.replace(/\n/g, '<br>')}`;
+                history.appendChild(div);
+            });
+            history.scrollTop = history.scrollHeight;
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settings-modal').style.display = 'flex';
+        }
+
+        // تست زنده کلید جمینای و استخراج مدل‌ها
+        async function testAndFetchGemini() {
+            let key = document.getElementById('gemini-key').value.trim();
+            let statusEl = document.getElementById('gemini-status');
+            if(!key) {
+                alert('لطفاً ابتدا کلید جمینای را وارد کنید.');
+                return;
+            }
+            statusEl.innerText = 'در حال اتصال و اعتبارسنجی کلید...';
+            
+            try {
+                let res = await fetch('/api/test-gemini', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({api_key: key})
+                });
+                let data = await res.json();
+                if(data.status === 'success') {
+                    statusEl.style.color = '#4ADE80';
+                    statusEl.innerText = `تایید شد! ${data.models.length} مدل بارگذاری شد.`;
+                    
+                    let modelSelect = document.getElementById('model-select');
+                    modelSelect.innerHTML = '';
+                    data.models.forEach(m => {
+                        let opt = document.createElement('option');
+                        opt.value = m;
+                        opt.innerText = m;
+                        modelSelect.appendChild(opt);
+                    });
+                } else {
+                    statusEl.style.color = '#FCA5A5';
+                    statusEl.innerText = data.message;
+                }
+            } catch(e) {
+                statusEl.style.color = '#FCA5A5';
+                statusEl.innerText = 'خطا در برقراری ارتباط با سرور.';
+            }
+        }
+
+        const textarea = document.getElementById('chat-input');
+        textarea.addEventListener('input', function() {
+            this.style.height = '24px';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        textarea.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    attachedImage = event.target.result;
+                    document.getElementById('attach-btn').style.color = '#3B82F6';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function sendMessage() {
+            if(!currentChatId) return;
+            const text = textarea.value.trim();
+            if (!text && !attachedImage) return;
+
+            let session = chatSessions[currentChatId];
+            let userMsgText = text + (attachedImage ? ' [تصویر پیوست شد]' : '');
+            session.messages.push({ role: 'user', text: userMsgText });
+            renderCurrentChatMessages();
+
+            textarea.value = '';
+            textarea.style.height = '24px';
+            document.getElementById('loading-indicator').style.display = 'block';
+            document.getElementById('send-btn').disabled = true;
+
+            // جمع‌آوری اسکیل‌های تیک‌خورده دستی
+            let activeSkills = [];
+            document.querySelectorAll('input[name="skill"]:checked').forEach(cb => activeSkills.push(cb.value));
+
+            const payload = {
+                text: text,
+                image: attachedImage,
+                model: document.getElementById('model-select').value,
+                api_key: document.getElementById('gemini-key').value,
+                skills: activeSkills
+            };
+
+            attachedImage = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('attach-btn').style.color = 'var(--text-muted)';
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                document.getElementById('loading-indicator').style.display = 'none';
+                
+                if (data.ai_response) session.messages.push({ role: 'ai', text: data.ai_response });
+                if (data.sys_response) session.messages.push({ role: 'sys', text: data.sys_response });
+                renderCurrentChatMessages();
+            } catch (error) {
+                document.getElementById('loading-indicator').style.display = 'none';
+                session.messages.push({ role: 'sys', text: 'خطا در ارتباط با سرور محلی.' });
+                renderCurrentChatMessages();
+            }
+            document.getElementById('send-btn').disabled = false;
+        }
+
+        window.onload = async function() {
+            const res = await fetch('/api/settings');
+            const conf = await res.json();
+            if(conf.Gemini?.length) document.getElementById('gemini-key').value = conf.Gemini[0];
+            if(conf.OpenRouter?.length) document.getElementById('openrouter-key').value = conf.OpenRouter[0];
+            if(conf.Proxy) {
+                document.getElementById('proxy-enable').checked = conf.Proxy.enabled;
+                document.getElementById('proxy-host').value = conf.Proxy.host || '';
+                document.getElementById('proxy-port').value = conf.Proxy.port || '';
+            }
+        };
+
+        async function saveSettings() {
+            const conf = {
+                Gemini: document.getElementById('gemini-key').value ? [document.getElementById('gemini-key'].value] : [],
+                OpenRouter: document.getElementById('openrouter-key'].value ? [document.getElementById('openrouter-key'].value] : [],
+                Proxy: {
+                    enabled: document.getElementById('proxy-enable').checked,
+                    host: document.getElementById('proxy-host').value,
+                    port: document.getElementById('proxy-port').value
+                }
+            };
+            await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conf) });
+            document.getElementById('settings-modal').style.display = 'none';
+            alert('تنظیمات و پراکسی ساکس۵ با موفقیت ذخیره شد.');
+        }
+
+        async function shutdownApp() {
+            if (confirm("آیا مایلید سرور سرتاسر متوقف شود؟")) {
+                await fetch('/api/shutdown', { method: 'POST' });
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top:30vh; color:#A1A1AA;'>سرور خاموش شد. اکنون می‌توانید پوشه را پاک کنید.</h2>";
+            }
+        }
+    </script>
+</body>
+</html>
