@@ -22,7 +22,12 @@ jobs:
 
     - name: Build App with PyInstaller
       working-directory: ./src
-      run: pyinstaller --onedir --windowed --noconsole --clean --add-data "templates;templates" app.py
+      # حذف سوییچ های noconsole و windowed موقتا برای اینکه لاگ اجرا در CMD باز بماند
+      run: pyinstaller --onedir --clean --add-data "templates;templates" app.py
+
+    - name: Copy Templates to Root Dist
+      run: |
+        xcopy /E /I "src\templates" "src\dist\app\templates"
 
     - name: Create Stop Script Automatically
       run: |
