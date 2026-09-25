@@ -3,7 +3,6 @@ import sys
 import json
 import logging
 import traceback
-import subprocess
 import webbrowser
 from threading import Timer
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
@@ -28,7 +27,7 @@ logging.basicConfig(
 logging.info("=== STEP 1: Initializing Application Environment ===")
 logging.info(f"Execution Base Directory: {base_dir}")
 
-# تعیین مسیر پوشه templates
+# تعیین مسیر دقیق پوشه templates (سازگار با نسخه توسعه و بیلد نهایی)
 internal_templates = os.path.join(base_dir, '_internal', 'templates')
 root_templates = os.path.join(base_dir, 'templates')
 
@@ -44,7 +43,7 @@ else:
 
 logging.info("=== STEP 2: Creating Flask App Instance ===")
 app = Flask(__name__, template_folder=template_folder)
-app.secret_key = "infrastructure_secret_key_secure_session"
+app.secret_key = "infrastructure_secret_key_secure_session_pro"
 
 logging.info("=== STEP 3: Initializing APIManager and Skills Bank ===")
 try:
@@ -96,7 +95,7 @@ def login():
             logging.info("User login successful.")
             return jsonify({"status": "success"})
         logging.warning("User login failed: invalid credentials.")
-        return jsonify({"status": "error", "message": "Invalid username or password"}), 401
+        return jsonify({"status": "error", "message": "نام کاربری یا رمز عبور اشتباه است."}), 401
     return render_template('login.html')
 
 @app.route('/logout')
@@ -150,26 +149,18 @@ def shutdown():
 def open_browser(port):
     url = f"http://127.0.0.1:{port}/login"
     logging.info(f"Attempting to launch browser at: {url}")
-    chrome_paths = [
-        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-        os.path.expandvars(r"%LOCALAPPDATA%\Google\Chrome\Application\chrome.exe")
-    ]
-    for path in chrome_paths:
-        if os.path.exists(path):
-            try:
-                subprocess.Popen([path, f"--app={url}"])
-                logging.info(f"Chrome App Window opened via: {path}")
-                return
-            except Exception as e:
-                logging.warning(f"Could not open Chrome App window: {e}")
-    webbrowser.open(url)
-    logging.info("Default system browser invoked.")
+    try:
+        # استفاده از ماژول استاندارد پایتون برای باز کردن قطعی تب مرورگر
+        webbrowser.open_new_tab(url)
+        logging.info("Browser tab opened successfully.")
+    except Exception as e:
+        logging.warning(f"Could not open browser automatically: {e}")
 
 if __name__ == '__main__':
     try:
         load_config()
-        PORT = 65748
+        # پورت اصلاح شده به یک پورت مجاز و استاندارد در شبکه
+        PORT = 8585
         logging.info(f"=== STEP 4: Starting Local Server on 127.0.0.1:{PORT} ===")
         Timer(1.2, open_browser, [PORT]).start()
         app.run(host='127.0.0.1', port=PORT, debug=False)
