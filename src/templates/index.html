@@ -11,15 +11,18 @@
         #sidebar { width: 340px; background-color: var(--bg-panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; gap: 10px; }
         .btn { background-color: var(--border); color: var(--text-main); border: none; padding: 10px 14px; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: bold; transition: 0.2s; text-align: right; width: 100%; }
         .btn:hover { background-color: #3F3F46; }
-        .btn-primary { background-color: var(--accent); color: white; }
+        .btn-primary { background-color: var(--accent); color: white; text-align: center; }
         .btn-primary:hover { background-color: #2563EB; }
-        .btn-danger { background-color: #7F1D1D; color: #FCA5A5; border: 1px solid #991B1B; margin-top: auto; }
+        .btn-danger { background-color: #7F1D1D; color: #FCA5A5; border: 1px solid #991B1B; text-align: center; }
         .btn-danger:hover { background-color: #991B1B; color: #FFFFFF; }
+        .btn-warning { background-color: #B45309; color: #FDE68A; border: 1px solid #D97706; text-align: center; }
+        .btn-warning:hover { background-color: #D97706; color: #FFFFFF; }
         
         select, input, textarea { width: 100%; padding: 10px; background-color: var(--bg-main); color: var(--text-main); border: 1px solid var(--border); border-radius: 8px; font-family: inherit; box-sizing: border-box; }
         
-        .chat-room-item { padding: 10px; border-radius: 6px; cursor: pointer; background: var(--bg-main); margin-bottom: 5px; border: 1px solid var(--border); font-size: 13px; }
+        .chat-room-item { padding: 10px; border-radius: 6px; cursor: pointer; background: var(--bg-main); margin-bottom: 5px; border: 1px solid var(--border); font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
         .chat-room-item.active { border-color: var(--accent); background: #1E1E24; }
+        .delete-chat { color: #FCA5A5; background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 5px; }
 
         #main-chat { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; }
         #chat-history { flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; padding-bottom: 20px; }
@@ -29,120 +32,161 @@
         .msg.ai { background-color: var(--bg-panel); border: 1px solid var(--border); align-self: flex-end; }
         .msg.sys { background-color: #064E3B; border: 1px solid #065F46; color: #4ADE80; width: 100%; align-self: center; text-align: center; }
         
-        /* پنل مهارت‌های دستی در کنار باکس پیام */
         .skills-toolbar { background: var(--bg-panel); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; margin-bottom: 8px; display: flex; gap: 15px; align-items: center; font-size: 12px; }
         .skills-toolbar label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--text-muted); }
-        .skills-toolbar label:hover { color: var(--text-main); }
-
+        
         #input-area { display: flex; gap: 10px; align-items: flex-end; background-color: var(--bg-panel); padding: 10px; border-radius: 12px; border: 1px solid var(--border); }
         #chat-input { flex-grow: 1; background: transparent; border: none; resize: none; min-height: 24px; max-height: 150px; outline: none; line-height: 1.5; }
-        
-        #attach-btn { background: transparent; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; padding: 5px 10px; }
         #send-btn { background-color: var(--accent); color: white; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
         
-        /* مودال تنظیمات و تست API */
-        #settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
-        .modal-content { background: var(--bg-panel); padding: 30px; border-radius: 12px; border: 1px solid var(--border); width: 500px; display: flex; flex-direction: column; gap: 12px; max-height: 85vh; overflow-y: auto; }
-        .loading { color: var(--text-muted); font-style: italic; align-self: center; display: none; }
+        /* طراحی جدید مودال تنظیمات با باکس‌های تفکیک شده */
+        #settings-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--bg-main); padding: 25px; border-radius: 12px; border: 1px solid var(--border); width: 800px; max-height: 90vh; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .settings-header { grid-column: span 2; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .settings-box { background: var(--bg-panel); border: 1px solid var(--border); padding: 15px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .settings-box h4 { margin: 0 0 10px 0; color: var(--accent); border-bottom: 1px dashed var(--border); padding-bottom: 5px; }
+        
+        .loading { color: var(--text-muted); font-style: italic; align-self: center; display: none; margin-bottom: 10px;}
     </style>
 </head>
 <body>
 
-    <!-- سایدبار مدیریت مکالمات -->
     <div id="sidebar">
-        <h2>مدیر زیرساخت هوشمند</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>پنل {{ 'مدیریت' if role == 'admin' else 'کاربر' }}</h2>
+            <span style="font-size: 12px; color: var(--text-muted);">پروفایل: {{ username }}</span>
+        </div>
         
         <label>انتخاب مدل فعال چت:</label>
         <select id="model-select">
-            <option value="gemini-1.5-flash">Gemini 1.5 Flash (پیش‌فرض)</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
             <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-            <option value="deepseek/deepseek-chat">DeepSeek (OpenRouter)</option>
+            <option value="deepseek/deepseek-chat">DeepSeek</option>
         </select>
         
         <button class="btn btn-primary" onclick="createNewChatSession()">＋ مکالمه جدید</button>
         
         <hr style="border-color: var(--border); width:100%; margin: 5px 0;">
         <label>سابقه چت‌روم‌ها:</label>
-        <div id="chat-rooms-list" style="overflow-y: auto; max-height: 280px; flex-grow: 1;"></div>
+        <div id="chat-rooms-list" style="overflow-y: auto; max-height: 350px; flex-grow: 1;"></div>
         
-        <button class="btn" onclick="openSettingsModal()">⚙️ تنظیمات API و پراکسی ساکس۵</button>
-        <a href="/logout" style="text-decoration:none;"><button class="btn" style="background:#3F3F46; color:#FCA5A5;">🚪 خروج از حساب ادمین</button></a>
-        <button class="btn btn-danger" onclick="shutdownApp()">❌ خاموش کردن کامل سرور</button>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 8px;">
+            {% if role == 'admin' %}
+            <button class="btn" style="text-align: center;" onclick="openSettingsModal()">⚙️ پنل تنظیمات پیشرفته سیستم</button>
+            {% endif %}
+            <a href="/logout" style="text-decoration:none;"><button class="btn" style="background:#3F3F46; color:#FCA5A5; text-align: center;">🚪 خروج از حساب</button></a>
+        </div>
     </div>
 
-    <!-- بخش اصلی چت -->
     <div id="main-chat">
         <div id="chat-history">
             <div style="text-align:center; color:#71717A; margin-top:50px;">جهت شروع، روی دکمه «مکالمه جدید» کلیک کنید.</div>
         </div>
         
-        <div class="loading" id="loading-indicator">در حال پردازش درخواست و فراخوانی مهارت‌ها...</div>
+        <div class="loading" id="loading-indicator">در حال پردازش درخواست...</div>
         
-        <!-- باکس انتخاب دستی اسکیل‌ها/مهارت‌ها در حین چت -->
+        {% if role == 'admin' %}
         <div id="skills-box" class="skills-toolbar" style="display:none;">
-            <span style="font-weight: bold; color: var(--accent);">اسکیل‌های فعال این پیام:</span>
-            <label><input type="checkbox" name="skill" value="network_ping"> پینگ شبکه</label>
-            <label><input type="checkbox" name="skill" value="docker_status"> وضعیت داکر</label>
-            <label><input type="checkbox" name="skill" value="win_services"> سرویس‌های ویندوز</label>
-            <label><input type="checkbox" name="skill" value="firewall_rule"> فایروال</label>
+            <span style="font-weight: bold; color: var(--accent);">اسکیل‌های ادمین:</span>
+            <label><input type="checkbox" name="skill" value="network_ping"> شبکه</label>
+            <label><input type="checkbox" name="skill" value="docker_automation"> دواپس</label>
+            <label><input type="checkbox" name="skill" value="windows_admin"> ویندوز</label>
+            <label><input type="checkbox" name="skill" value="active_directory"> اکتیو دایرکتوری</label>
         </div>
+        {% endif %}
 
         <div id="input-area" style="display:none;">
             <input type="file" id="file-input" style="display:none" accept="image/*">
-            <button id="attach-btn" onclick="document.getElementById('file-input').click()">📎</button>
-            <textarea id="chat-input" placeholder="دستور خود را بنویسید (Enter برای ارسال، Shift+Enter برای خط جدید)..."></textarea>
+            <button class="btn" style="width:auto; padding: 10px;" onclick="document.getElementById('file-input').click()">📎</button>
+            <textarea id="chat-input" placeholder="دستور خود را بنویسید (Enter برای ارسال)..."></textarea>
             <button id="send-btn" onclick="sendMessage()">ارسال ↑</button>
         </div>
     </div>
 
-    <!-- مودال تنظیمات پیشرفته API، تست زنده و پراکسی ساکس۵ -->
+    {% if role == 'admin' %}
+    <!-- مودال تنظیمات یکپارچه (فقط برای ادمین) -->
     <div id="settings-modal">
         <div class="modal-content">
-            <h3>تنظیمات کلیدهای API و پراکسی شبکه</h3>
-            
-            <label>کلید API جمینای (Gemini):</label>
-            <div style="display:flex; gap:8px;">
-                <input type="text" id="gemini-key" placeholder="AIzaSy...">
-                <button class="btn btn-primary" onclick="testAndFetchGemini()" style="width: 120px;">تست و فچ مدل‌ها</button>
+            <div class="settings-header">
+                <h3>⚙️ تنظیمات و مدیریت سیستم</h3>
+                <button class="btn" style="width:auto;" onclick="document.getElementById('settings-modal').style.display='none'">بستن ❌</button>
             </div>
-            <small id="gemini-status" style="color: var(--text-muted);"></small>
 
-            <label style="margin-top: 10px;">کلید API اوپن‌روتر (OpenRouter / DeepSeek):</label>
-            <input type="text" id="openrouter-key" placeholder="sk-or-v1-...">
-            
-            <hr style="border-color: var(--border); width:100%; margin: 10px 0;">
-            
-            <label><input type="checkbox" id="proxy-enable"> فعال‌سازی سوییچ پراکسی SOCKS5</label>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="proxy-host" placeholder="IP (127.0.0.1)">
-                <input type="text" id="proxy-port" placeholder="Port (1080)">
+            <!-- باکس 1: تنظیمات API -->
+            <div class="settings-box">
+                <h4>🔑 کلیدهای هوش مصنوعی</h4>
+                <label>کلید API جمینای:</label>
+                <div style="display:flex; gap:8px;">
+                    <input type="text" id="gemini-key" placeholder="AIzaSy...">
+                    <button class="btn btn-primary" onclick="testAndFetchGemini()" style="width: auto; padding: 0 10px;">تست</button>
+                </div>
+                <small id="gemini-status" style="color: var(--text-muted);"></small>
+
+                <label style="margin-top: 10px;">کلید API اوپن‌روتر:</label>
+                <input type="text" id="openrouter-key" placeholder="sk-or-v1-...">
             </div>
-            
-            <div style="display:flex; gap:10px; margin-top:15px;">
-                <button class="btn btn-primary" onclick="saveSettings()">ذخیره تنظیمات کلی</button>
-                <button class="btn" onclick="document.getElementById('settings-modal').style.display='none'">بستن</button>
+
+            <!-- باکس 2: پراکسی -->
+            <div class="settings-box">
+                <h4>🌐 تونل و پراکسی (SOCKS5)</h4>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" id="proxy-enable" style="width: auto;"> فعال‌سازی پراکسی برای عبور تحریم
+                </label>
+                <label>IP پراکسی:</label>
+                <input type="text" id="proxy-host" placeholder="مثلاً 127.0.0.1">
+                <label>پورت پراکسی:</label>
+                <input type="text" id="proxy-port" placeholder="مثلاً 1080">
             </div>
+
+            <!-- باکس 3: مدیریت اکانت‌ها -->
+            <div class="settings-box">
+                <h4>👥 مدیریت کاربران و رمز عبور</h4>
+                <label>رمز عبور جدید ادمین (admin):</label>
+                <input type="text" id="pass-admin" placeholder="رمز مدیر">
+                
+                <label>رمز عبور کاربر ۱ (user1):</label>
+                <input type="text" id="pass-user1" placeholder="رمز کاربر عادی اول">
+                
+                <label>رمز عبور کاربر ۲ (user2):</label>
+                <input type="text" id="pass-user2" placeholder="رمز کاربر عادی دوم">
+            </div>
+
+            <!-- باکس 4: کنترل سرور و ذخیره -->
+            <div class="settings-box">
+                <h4>⚡ عملیات سرور</h4>
+                <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 10px 0;">ابتدا تغییرات را ذخیره کنید، سپس در صورت نیاز سرور را ریستارت نمایید.</p>
+                <button class="btn btn-primary" onclick="saveSettings()">💾 ذخیره تمام تنظیمات</button>
+                <div style="display: flex; gap: 10px; margin-top: auto;">
+                    <button class="btn btn-warning" onclick="restartServer()">🔄 ریستارت سرویس</button>
+                    <button class="btn btn-danger" onclick="shutdownApp()">❌ خاموش کردن سرور</button>
+                </div>
+            </div>
+
         </div>
     </div>
+    {% endif %}
 
     <script>
-        let chatSessions = {};
+        const currentUser = "{{ username }}";
+        const userRole = "{{ role }}";
+        
+        // تفکیک حافظه لوکال برای هر پروفایل تا سابقه چت‌ها قاطی نشود
+        const storageKey = 'chats_' + currentUser;
+        let chatSessions = JSON.parse(localStorage.getItem(storageKey)) || {};
         let currentChatId = null;
         let attachedImage = null;
-        let globalApiKey = '';
+        let fullConfig = {}; // نگهداری ساختار کامل تنظیمات لود شده
+
+        function saveChatsToLocal() {
+            localStorage.setItem(storageKey, JSON.stringify(chatSessions));
+        }
 
         function createNewChatSession() {
             let chatId = 'chat_' + Date.now();
             let chatName = 'مکالمه ' + new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
-            chatSessions[chatId] = {
-                id: chatId,
-                name: chatName,
-                messages: []
-            };
-
+            chatSessions[chatId] = { id: chatId, name: chatName, messages: [] };
+            saveChatsToLocal();
             switchChat(chatId);
-            renderChatRoomsList();
         }
 
         function switchChat(chatId) {
@@ -150,20 +194,36 @@
             renderChatRoomsList();
             renderCurrentChatMessages();
             document.getElementById('input-area').style.display = 'flex';
-            document.getElementById('skills-box').style.display = 'flex';
+            if(document.getElementById('skills-box')) document.getElementById('skills-box').style.display = 'flex';
+        }
+
+        function deleteChat(chatId, event) {
+            event.stopPropagation();
+            if(confirm("آیا از حذف این مکالمه مطمئن هستید؟")) {
+                delete chatSessions[chatId];
+                saveChatsToLocal();
+                if(currentChatId === chatId) {
+                    currentChatId = null;
+                    document.getElementById('chat-history').innerHTML = `<div style='text-align:center; color:#71717A; margin-top:50px;'>یک مکالمه را انتخاب یا ایجاد کنید.</div>`;
+                    document.getElementById('input-area').style.display = 'none';
+                    if(document.getElementById('skills-box')) document.getElementById('skills-box').style.display = 'none';
+                }
+                renderChatRoomsList();
+            }
         }
 
         function renderChatRoomsList() {
             let listDiv = document.getElementById('chat-rooms-list');
             listDiv.innerHTML = '';
-            for(let id in chatSessions) {
+            let keys = Object.keys(chatSessions).reverse();
+            keys.forEach(id => {
                 let s = chatSessions[id];
                 let div = document.createElement('div');
                 div.className = `chat-room-item ${id === currentChatId ? 'active' : ''}`;
-                div.innerText = s.name;
+                div.innerHTML = `<span>${s.name}</span> <button class="delete-chat" onclick="deleteChat('${id}', event)">✖</button>`;
                 div.onclick = () => switchChat(id);
                 listDiv.appendChild(div);
-            }
+            });
         }
 
         function renderCurrentChatMessages() {
@@ -180,55 +240,88 @@
             session.messages.forEach(m => {
                 let div = document.createElement('div');
                 div.className = `msg ${m.role}`;
-                div.innerHTML = `<b>${m.role === 'user' ? 'شما' : m.role === 'sys' ? 'خروجی سیستم' : 'هوش مصنوعی'}:</b><br>${m.text.replace(/\n/g, '<br>')}`;
+                div.innerHTML = `<b>${m.role === 'user' ? 'شما' : m.role === 'sys' ? 'سیستم' : 'هوش مصنوعی'}:</b><br>${m.text.replace(/\n/g, '<br>')}`;
                 history.appendChild(div);
             });
             history.scrollTop = history.scrollHeight;
         }
 
-        function openSettingsModal() {
+        // --- بخش تنظیمات فقط برای ادمین ---
+        {% if role == 'admin' %}
+        async function openSettingsModal() {
+            const res = await fetch('/api/settings');
+            fullConfig = await res.json();
+            
+            if(fullConfig.Gemini?.length) document.getElementById('gemini-key').value = fullConfig.Gemini[0];
+            if(fullConfig.OpenRouter?.length) document.getElementById('openrouter-key').value = fullConfig.OpenRouter[0];
+            if(fullConfig.Proxy) {
+                document.getElementById('proxy-enable').checked = fullConfig.Proxy.enabled;
+                document.getElementById('proxy-host').value = fullConfig.Proxy.host || '';
+                document.getElementById('proxy-port').value = fullConfig.Proxy.port || '';
+            }
+            if(fullConfig.users) {
+                document.getElementById('pass-admin').value = fullConfig.users['admin']?.password || '';
+                document.getElementById('pass-user1').value = fullConfig.users['user1']?.password || '';
+                document.getElementById('pass-user2').value = fullConfig.users['user2']?.password || '';
+            }
             document.getElementById('settings-modal').style.display = 'flex';
         }
 
-        // تست زنده کلید جمینای و استخراج مدل‌ها
+        async function saveSettings() {
+            fullConfig.Gemini = document.getElementById('gemini-key').value ? [document.getElementById('gemini-key').value] : [];
+            fullConfig.OpenRouter = document.getElementById('openrouter-key').value ? [document.getElementById('openrouter-key').value] : [];
+            fullConfig.Proxy = {
+                enabled: document.getElementById('proxy-enable').checked,
+                host: document.getElementById('proxy-host').value,
+                port: document.getElementById('proxy-port').value
+            };
+            
+            if(!fullConfig.users) fullConfig.users = {};
+            if(document.getElementById('pass-admin').value) fullConfig.users['admin'] = {password: document.getElementById('pass-admin').value, role: 'admin'};
+            if(document.getElementById('pass-user1').value) fullConfig.users['user1'] = {password: document.getElementById('pass-user1').value, role: 'user'};
+            if(document.getElementById('pass-user2').value) fullConfig.users['user2'] = {password: document.getElementById('pass-user2').value, role: 'user'};
+
+            await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fullConfig) });
+            alert('تنظیمات با موفقیت ذخیره شد.');
+        }
+
         async function testAndFetchGemini() {
             let key = document.getElementById('gemini-key').value.trim();
             let statusEl = document.getElementById('gemini-status');
-            if(!key) {
-                alert('لطفاً ابتدا کلید جمینای را وارد کنید.');
-                return;
-            }
-            statusEl.innerText = 'در حال اتصال و اعتبارسنجی کلید...';
-            
-            try {
-                let res = await fetch('/api/test-gemini', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({api_key: key})
-                });
-                let data = await res.json();
-                if(data.status === 'success') {
-                    statusEl.style.color = '#4ADE80';
-                    statusEl.innerText = `تایید شد! ${data.models.length} مدل بارگذاری شد.`;
-                    
-                    let modelSelect = document.getElementById('model-select');
-                    modelSelect.innerHTML = '';
-                    data.models.forEach(m => {
-                        let opt = document.createElement('option');
-                        opt.value = m;
-                        opt.innerText = m;
-                        modelSelect.appendChild(opt);
-                    });
-                } else {
-                    statusEl.style.color = '#FCA5A5';
-                    statusEl.innerText = data.message;
-                }
-            } catch(e) {
+            if(!key) { alert('لطفاً کلید جمینای را وارد کنید.'); return; }
+            statusEl.innerText = 'در حال ارتباط...';
+            let res = await fetch('/api/test-gemini', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({api_key: key}) });
+            let data = await res.json();
+            if(data.status === 'success') {
+                statusEl.style.color = '#4ADE80';
+                statusEl.innerText = `تایید شد! ${data.models.length} مدل فچ شد.`;
+                let select = document.getElementById('model-select');
+                select.innerHTML = '';
+                data.models.forEach(m => select.innerHTML += `<option value="${m}">${m}</option>`);
+            } else {
                 statusEl.style.color = '#FCA5A5';
-                statusEl.innerText = 'خطا در برقراری ارتباط با سرور.';
+                statusEl.innerText = 'خطا در کلید یا پراکسی.';
             }
         }
 
+        async function restartServer() {
+            if (confirm("آیا مایلید سرور ریستارت شود؟")) {
+                await fetch('/api/restart', { method: 'POST' });
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top:30vh; color:#3B82F6;'>سرور در حال ریستارت است. لطفاً چند ثانیه صبر کنید...</h2>";
+                setTimeout(() => location.reload(), 3000);
+            }
+        }
+
+        async function shutdownApp() {
+            if (confirm("آیا مایلید سرور کاملاً خاموش شود؟")) {
+                await fetch('/api/shutdown', { method: 'POST' });
+                document.body.innerHTML = "<h2 style='text-align:center; margin-top:30vh; color:#FCA5A5;'>سرور خاموش شد. می‌توانید صفحه را ببندید.</h2>";
+            }
+        }
+        {% endif %}
+        // --- پایان بخش اختصاصی ادمین ---
+
+        // منطق چت
         const textarea = document.getElementById('chat-input');
         textarea.addEventListener('input', function() {
             this.style.height = '24px';
@@ -236,21 +329,14 @@
         });
 
         textarea.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
         });
 
         document.getElementById('file-input').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
+            if (e.target.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(event) {
-                    attachedImage = event.target.result;
-                    document.getElementById('attach-btn').style.color = '#3B82F6';
-                };
-                reader.readAsDataURL(file);
+                reader.onload = e => { attachedImage = e.target.result; document.querySelector('.btn[onclick*="file-input"]').style.color = '#3B82F6'; };
+                reader.readAsDataURL(e.target.files[0]);
             }
         });
 
@@ -262,6 +348,7 @@
             let session = chatSessions[currentChatId];
             let userMsgText = text + (attachedImage ? ' [تصویر پیوست شد]' : '');
             session.messages.push({ role: 'user', text: userMsgText });
+            saveChatsToLocal();
             renderCurrentChatMessages();
 
             textarea.value = '';
@@ -269,21 +356,22 @@
             document.getElementById('loading-indicator').style.display = 'block';
             document.getElementById('send-btn').disabled = true;
 
-            // جمع‌آوری اسکیل‌های تیک‌خورده دستی
             let activeSkills = [];
-            document.querySelectorAll('input[name="skill"]:checked').forEach(cb => activeSkills.push(cb.value));
+            if(userRole === 'admin') {
+                document.querySelectorAll('input[name="skill"]:checked').forEach(cb => activeSkills.push(cb.value));
+            }
 
             const payload = {
                 text: text,
                 image: attachedImage,
                 model: document.getElementById('model-select').value,
-                api_key: document.getElementById('gemini-key').value,
+                api_key: document.getElementById('gemini-key') ? document.getElementById('gemini-key').value : '',
                 skills: activeSkills
             };
 
             attachedImage = null;
             document.getElementById('file-input').value = '';
-            document.getElementById('attach-btn').style.color = 'var(--text-muted)';
+            document.querySelector('.btn[onclick*="file-input"]').style.color = 'var(--text-main)';
 
             try {
                 const response = await fetch('/api/chat', {
@@ -291,53 +379,32 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                
+                if (response.status === 401) {
+                    window.location.href = '/login';
+                    return;
+                }
+                
                 const data = await response.json();
                 document.getElementById('loading-indicator').style.display = 'none';
                 
                 if (data.ai_response) session.messages.push({ role: 'ai', text: data.ai_response });
                 if (data.sys_response) session.messages.push({ role: 'sys', text: data.sys_response });
+                
+                saveChatsToLocal();
                 renderCurrentChatMessages();
             } catch (error) {
                 document.getElementById('loading-indicator').style.display = 'none';
-                session.messages.push({ role: 'sys', text: 'خطا در ارتباط با سرور محلی.' });
+                session.messages.push({ role: 'sys', text: 'خطا در ارتباط با سرور.' });
+                saveChatsToLocal();
                 renderCurrentChatMessages();
             }
             document.getElementById('send-btn').disabled = false;
         }
 
-        window.onload = async function() {
-            const res = await fetch('/api/settings');
-            const conf = await res.json();
-            if(conf.Gemini?.length) document.getElementById('gemini-key').value = conf.Gemini[0];
-            if(conf.OpenRouter?.length) document.getElementById('openrouter-key').value = conf.OpenRouter[0];
-            if(conf.Proxy) {
-                document.getElementById('proxy-enable').checked = conf.Proxy.enabled;
-                document.getElementById('proxy-host').value = conf.Proxy.host || '';
-                document.getElementById('proxy-port').value = conf.Proxy.port || '';
-            }
+        window.onload = function() {
+            renderChatRoomsList();
         };
-
-        async function saveSettings() {
-            const conf = {
-                Gemini: document.getElementById('gemini-key').value ? [document.getElementById('gemini-key'].value] : [],
-                OpenRouter: document.getElementById('openrouter-key'].value ? [document.getElementById('openrouter-key'].value] : [],
-                Proxy: {
-                    enabled: document.getElementById('proxy-enable').checked,
-                    host: document.getElementById('proxy-host').value,
-                    port: document.getElementById('proxy-port').value
-                }
-            };
-            await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(conf) });
-            document.getElementById('settings-modal').style.display = 'none';
-            alert('تنظیمات و پراکسی ساکس۵ با موفقیت ذخیره شد.');
-        }
-
-        async function shutdownApp() {
-            if (confirm("آیا مایلید سرور سرتاسر متوقف شود؟")) {
-                await fetch('/api/shutdown', { method: 'POST' });
-                document.body.innerHTML = "<h2 style='text-align:center; margin-top:30vh; color:#A1A1AA;'>سرور خاموش شد. اکنون می‌توانید پوشه را پاک کنید.</h2>";
-            }
-        }
     </script>
 </body>
 </html>
