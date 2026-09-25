@@ -22,25 +22,24 @@ jobs:
 
     - name: Build App with PyInstaller
       working-directory: ./src
-      # حذف سوییچ های noconsole و windowed موقتا برای اینکه لاگ اجرا در CMD باز بماند
+      # خروجی کنسول را نگه می‌داریم تا لاگ‌های زنده در خط فرمان دیده شوند
       run: pyinstaller --onedir --clean --add-data "templates;templates" app.py
 
     - name: Copy Templates to Root Dist
       run: |
         xcopy /E /I "src\templates" "src\dist\app\templates"
 
-    - name: Create Stop Script Automatically
+    - name: Create Stop Script Automatically (English Only)
       run: |
         $stopScriptContent = @"
         @echo off
-        chcp 65001 >nul
-        echo [INFO] در حال متوقف کردن سرویس‌های هوشمند زیرساخت...
+        echo [INFO] Stopping all Infrastructure Manager processes...
         taskkill /F /IM python.exe >nul 2>&1
         taskkill /F /IM app.exe >nul 2>&1
-        echo [OK] سرور با موفقیت متوقف شد و پوشه آزاد گردید.
+        echo [OK] Processes stopped. Directory is now unlocked.
         timeout /t 2 >nul
         "@
-        Set-Content -Path "src/dist/app/stop.bat" -Value $stopScriptContent -Encoding Default
+        Set-Content -Path "src/dist/app/stop.bat" -Value $stopScriptContent -Encoding ASCII
 
     - name: Create Dist Directory
       run: if (!(Test-Path dist)) { mkdir dist }
